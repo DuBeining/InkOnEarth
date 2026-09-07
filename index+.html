@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>InkOnEarth</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    #map { height: 100vh; width: 100vw; }
+    
+    #panel {
+      position: absolute; top: 16px; left: 16px; z-index: 1000;
+      background: rgba(255, 255, 255, 0.96); padding: 16px 20px;
+      border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      display: flex; flex-direction: column; gap: 12px; width: 280px;
+    }
+    .form-group { display: flex; align-items: center; justify-content: space-between; }
+    .form-group label { font-size: 13px; color: #333; font-weight: 500; }
+    input[type="text"] { width: 48px; padding: 4px 8px; text-align: center; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
+    input[type="range"] { width: 120px; }
+    
+    .btn {
+      padding: 8px 12px; border: none; border-radius: 6px; 
+      cursor: pointer; font-weight: 500; transition: background 0.2s;
+    }
+    .btn-primary { background: #0066ff; color: #fff; }
+    .btn-primary:hover { background: #0052cc; }
+    .btn-success { background: #10b981; color: #fff; width: 100%; }
+    .btn-success:hover { background: #059669; }
+
+    #routeList { max-height: 160px; overflow-y: auto; font-size: 12px; color: #444; border-top: 1px solid #eee; padding-top: 8px; }
+    .tip { font-size: 11px; color: #888; line-height: 1.4; border-top: 1px solid #f0f0f0; padding-top: 6px; }
+  </style>
+</head>
+<body>
+
+<div id="panel">
+  <div class="form-group">
+    <label>输入汉字：</label>
+    <input id="charInput" type="text" maxlength="1" value="大" />
+    <button class="btn btn-primary" onclick="renderHanziOnMap()">输出</button>
+  </div>
+  
+  <div class="form-group">
+    <label>覆盖范围:</label>
+    <input id="spanRange" type="range" min="1" max="15" step="0.5" value="5" oninput="updateMapping()" />
+  </div>
+
+  <div class="form-group">
+    <label>笔画平直度:</label>
+    <input id="toleranceRange" type="range" min="8" max="60" step="2" value="25" oninput="updateMapping()" />
+  </div>
+
+  <div id="routeList"></div>
+
+  <!-- 新增：导出操作按钮 -->
+  <button id="exportBtn" class="btn btn-success" onclick="exportToRoutesJson()">
+    导出并保存到 routes.json
+  </button>
+
+  <div class="tip">提示：点击地图可更换中心。蓝色实线为途经城市路线，悬停圆点可查看城市名。</div>
+</div>
+
+<div id="map"></div>
+
+<!-- 依赖脚本前置加载 -->
+<script src="china_cities.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- 核心逻辑脚本 -->
+<script src="js/main.js"></script>
+</body>
+</html>
