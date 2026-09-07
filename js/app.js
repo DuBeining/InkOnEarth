@@ -1,4 +1,3 @@
-// 1. 初始化底图
 const STADIA_KEY = 'a31838ed-3a9d-453e-8eea-1dca4d8ffa6f';
 const map = L.map('map').setView([34.0, 113.5], 5);
 
@@ -10,8 +9,18 @@ L.tileLayer(`https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.pn
 const drawingLayer = L.layerGroup().addTo(map);
 let isAnimating = false;
 
-// 书法色彩池（靛蓝、朱砂红、松石绿、紫苏）
-const PALETTE = ['#1e40af', '#b91c1c', '#047857', '#6b21a8'];
+const PALETTE = [
+  '#1e40af', // 1. 黛蓝
+  '#b91c1c', // 2. 朱砂
+  '#047857', // 3. 翡翠
+  '#b45309', // 4. 琥珀
+  '#6b21a8', // 5. 紫苏
+  '#0e7490', // 6. 苍蓝
+  '#c2410c', // 7. 赭石
+  '#0f766e', // 8. 松石
+  '#be185d', // 9. 胭脂
+  '#1f2937'  // 10. 焦墨
+];
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -32,7 +41,7 @@ function drawCityPoint(city, color) {
     weight: 2
   }).addTo(drawingLayer);
 
-  // 绑定气泡，允许鼠标随时悬停查看
+  // 绑定气泡，允许鼠标悬停查看
   marker.bindTooltip(city.name, {
     permanent: false,
     direction: 'top',
@@ -42,11 +51,10 @@ function drawCityPoint(city, color) {
   return marker;
 }
 
-// 核心书法运笔驱动
 async function startWritingAnimation() {
   const routeList = (typeof SAVED_ROUTES !== 'undefined') ? SAVED_ROUTES : [];
   if (!routeList.length) {
-    alert('未在 routes.js 中检测到汉字数据，请先在设计器中导出！');
+    alert('未在 routes.js 中检测到汉字数据，请先导出！');
     return;
   }
 
@@ -55,7 +63,7 @@ async function startWritingAnimation() {
   document.getElementById('playBtn').disabled = true;
   drawingLayer.clearLayers();
 
-  // 1. 镜头自适应对准所有字
+  // 1. 镜头自适应对准
   const allCoords = [];
   routeList.forEach(item => {
     item.strokes.forEach(s => s.cities.forEach(c => allCoords.push(c.coords)));
@@ -96,10 +104,9 @@ async function startWritingAnimation() {
         const end = cities[i + 1].coords;
         const isLastSegmentOfStroke = (i === cities.length - 2); // 是否是整笔的最后一段
 
-        // 1. 开始画本线段：立即弹开当前段起点城市名称
+        // 1. 开始画本线段
         currentSegStartMarker.openTooltip();
         
-        // 捕获当前段起点引用，在 1s 后自动关闭气泡
         const segStartToHide = currentSegStartMarker;
         setTimeout(() => {
           segStartToHide.closeTooltip();
@@ -111,13 +118,12 @@ async function startWritingAnimation() {
           const curLat = start[0] + (end[0] - start[0]) * (f / FRAMES);
           const curLng = start[1] + (end[1] - start[1]) * (f / FRAMES);
           animatedPolyline.addLatLng([curLat, curLng]);
-          await sleep(30); // 每帧间隔 30ms
+          await sleep(30);
         }
 
         // 3. 笔锋抵达本段终点：放置终点城市 marker
         const nextMarker = drawCityPoint(cities[i + 1], themeColor);
 
-        // 如果到达的是整笔画的最后一个终点城市，立即打开并在 2s 后关闭
         if (isLastSegmentOfStroke) {
           nextMarker.openTooltip();
           setTimeout(() => {
@@ -129,7 +135,7 @@ async function startWritingAnimation() {
         currentSegStartMarker = nextMarker;
       }
 
-      // 笔画起落之间的自然呼吸停顿（等终点稍微展示完再起下一笔）
+      // 笔画起落之间的停顿
       await sleep(1000);
     }
 
