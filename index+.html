@@ -53,20 +53,21 @@
 
   <div id="routeList"></div>
 
-  <!-- 新增：导出操作按钮 -->
   <button id="exportBtn" class="btn btn-success" onclick="exportToRoutesJson()">
-    导出并保存到 routes.json
+    导出并保存到 routes.js
   </button>
 
-  <div class="tip">提示：点击地图可更换中心。蓝色实线为途经城市路线，悬停圆点可查看城市名。</div>
+  <button id="clearBtn" class="btn btn-danger" onclick="clearSavedRoutes()" style="background: #ef4444; color: #fff; margin-top: 6px;">
+    清空已存字形
+  </button>
+
+  <div class="tip">提示：点击地图可更换中心。红色虚线为描红，蓝色实线为途经城市路线，悬停圆点可查看城市名。</div>
 </div>
 
 <div id="map"></div>
 
-<!-- 依赖脚本前置加载 -->
 <script src="china_cities.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<!-- 核心逻辑脚本 -->
 <script src="js/main.js"></script>
 </body>
 </html>
