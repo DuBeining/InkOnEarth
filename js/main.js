@@ -7,20 +7,15 @@ L.tileLayer(`https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.pn
 
 let currentStrokePaths = [];
 let centerLatLng = [34.0, 113.5];
-const layerGroup = L.layerGroup().addTo(map);
-
-// 缓存当前正在编辑的字与其全部轨迹数据
 let currentExportItem = null;
-
-// 从缓存中恢复历史已导出的多字列表（保证多次导出不丢失）
-let savedRoutes = JSON.parse(localStorage.getItem('ink_routes_cache') || '[]');
-let fileHandle = null; // 用于保持本地 routes.json 文件句柄
+const layerGroup = L.layerGroup().addTo(map);
 
 map.on('click', e => {
   centerLatLng = [e.latlng.lat, e.latlng.lng];
   updateMapping();
 });
 
+// 遍历城市库，通过欧氏距离快速寻找节点
 function findNearestCity(targetLat, targetLng) {
   let nearest = null, minDist = Infinity;
   for (let i = 0; i < CHINA_CITIES.length; i++) {
@@ -56,7 +51,7 @@ async function renderHanziOnMap() {
     console.error(err);
   }
 }
-
+// Douglas-Peucker 算法
 function simplifyPoints(points, tolerance) {
   if (points.length <= 2) return points;
   const sqTol = tolerance * tolerance;
@@ -91,6 +86,7 @@ function simplifyPoints(points, tolerance) {
   return res;
 }
 
+// 映射函数：将字的坐标投影到地图并吸附城市
 function updateMapping() {
   if (!currentStrokePaths.length) return;
   layerGroup.clearLayers();
@@ -98,9 +94,8 @@ function updateMapping() {
   const span = parseFloat(document.getElementById('spanRange').value);
   const tolerance = parseFloat(document.getElementById('toleranceRange').value);
   const [cLat, cLng] = centerLatLng;
-  const latCorrection = Math.cos(cLat * Math.PI / 180);
+  const latCorrection = Math.cos(cLat * Math.PI / 180); // 墨卡托投影的纬度矫正
 
-  // 辅助外框与中心点
   const hLng = span / 2, hLat = (span / 2) / latCorrection;
   L.rectangle([[cLat - hLat, cLng - hLng], [cLat + hLat, cLng + hLng]], {
     color: '#0066ff', weight: 1.5, dashArray: '4, 4', fill: false
@@ -113,7 +108,6 @@ function updateMapping() {
     const totalLen = path.getTotalLength();
     if (!totalLen) return;
 
-    // 等距密集采样并用 Douglas-Peucker 提纯骨架
     const densePts = [];
     for (let i = 0; i <= 35; i++) {
       const pt = path.getPointAtLength((i / 35) * totalLen);
@@ -134,12 +128,12 @@ function updateMapping() {
       const city = findNearestCity(lat, lng);
       if (city && (!matchedCities.length || matchedCities[matchedCities.length - 1].name !== city.name)) {
         matchedCities.push(city);
-      }
+      } // 相邻城市的去重
     });
 
     if (idealPts.length >= 2) {
       L.polyline(idealPts, { color: '#ff6666', weight: 1.5, dashArray: '3, 4', opacity: 0.6 }).addTo(layerGroup);
-    }
+    } // 绘制描红
 
     if (matchedCities.length >= 2) {
       L.polyline(matchedCities.map(c => c.coords), {
@@ -159,12 +153,10 @@ function updateMapping() {
     }
   });
 
-  // 更新当前待导出的完整字形对象
   const currentChar = document.getElementById('charInput').value.trim();
   currentExportItem = { char: currentChar, strokes: strokesData };
 
-  // 更新左侧列表 UI
-  const listEl = document.getElementById('routeList');
+  const listEl = document.getElementById('routeList'); // 更新左侧列表面板
   if (listEl) {
     listEl.innerHTML = strokesData.length ? strokesData.map(s => `
       <div style="margin-bottom: 6px;">
@@ -175,45 +167,36 @@ function updateMapping() {
   }
 }
 
+// 导出至剪贴板：基于 localStorage 实现多字追加与同名字覆盖
 function exportToRoutesJson() {
   if (!currentExportItem || !currentExportItem.strokes.length) {
     alert('当前没有可导出的笔画轨迹！');
     return;
   }
 
-  // 1. 读取已有的数据池（如果引入了 routes.js 则以 SAVED_ROUTES 为准，否则用本地缓存）
-  let pool = (typeof SAVED_ROUTES !== 'undefined' && SAVED_ROUTES.length > 0) 
-    ? SAVED_ROUTES 
-    : JSON.parse(localStorage.getItem('ink_routes_cache') || '[]');
-
-  // 2. 查重合并：已有同名汉字则更新，没有则追加
+  const pool = JSON.parse(localStorage.getItem('ink_routes_cache') || '[]');
   const existIdx = pool.findIndex(item => item.char === currentExportItem.char);
+
   if (existIdx >= 0) {
     pool[existIdx] = currentExportItem;
   } else {
     pool.push(currentExportItem);
   }
 
-  // 3. 保持内存与缓存同步
   localStorage.setItem('ink_routes_cache', JSON.stringify(pool));
-  if (typeof SAVED_ROUTES !== 'undefined') {
-    SAVED_ROUTES.length = 0;
-    SAVED_ROUTES.push(...pool);
-  }
-
-  // 4. 生成可直接粘贴回 routes.js 的标准代码
   const fileContent = `const SAVED_ROUTES = ${JSON.stringify(pool, null, 2)};\n`;
 
-  // 自动写入剪贴板
   navigator.clipboard.writeText(fileContent).then(() => {
-    alert(`「${currentExportItem.char}」已追加！当前共 ${pool.length} 个汉字。\n\n最新 routes.js 内容已自动复制到剪贴板，直接粘贴覆盖 routes.js 即可。`);
-  }).catch(() => {
-    const blob = new Blob([fileContent], { type: 'text/javascript' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'routes.js';
-    a.click();
+    alert(`「${currentExportItem.char}」已追加（共 ${pool.length} 字）！代码已复制到剪贴板。`);
   });
+}
+
+function clearSavedRoutes() {
+  if (!confirm('确定清空已存汉字轨迹？')) return;
+  localStorage.removeItem('ink_routes_cache');
+  currentExportItem = null;
+  updateMapping();
+  alert('已清空缓存');
 }
 
 window.onload = renderHanziOnMap;
