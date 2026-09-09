@@ -63,7 +63,7 @@ async function startWritingAnimation() {
   document.getElementById('playBtn').disabled = true;
   drawingLayer.clearLayers();
 
-  // 1. 镜头自适应对准
+  // 1. 镜头对准
   const allCoords = [];
   routeList.forEach(item => {
     item.strokes.forEach(s => s.cities.forEach(c => allCoords.push(c.coords)));
@@ -110,7 +110,7 @@ async function startWritingAnimation() {
         const segStartToHide = currentSegStartMarker;
         setTimeout(() => {
           segStartToHide.closeTooltip();
-        }, 1000);
+        }, 1000);  
 
         // 2. 本线段平滑插值向前延伸
         const FRAMES = 12;
@@ -118,7 +118,7 @@ async function startWritingAnimation() {
           const curLat = start[0] + (end[0] - start[0]) * (f / FRAMES);
           const curLng = start[1] + (end[1] - start[1]) * (f / FRAMES);
           animatedPolyline.addLatLng([curLat, curLng]);
-          await sleep(30);
+          await sleep(30); // 画线速度（帧率）
         }
 
         // 3. 笔锋抵达本段终点：放置终点城市 marker
@@ -135,8 +135,7 @@ async function startWritingAnimation() {
         currentSegStartMarker = nextMarker;
       }
 
-      // 笔画起落之间的停顿
-      await sleep(1000);
+      await sleep(1000); // 笔画起落之间的停顿
     }
 
     await sleep(1000); // 字与字之间的间隔
