@@ -113,12 +113,12 @@ async function startWritingAnimation() {
         }, 1000);  
 
         // 2. 本线段平滑插值向前延伸
-        const FRAMES = 12;
+        const FRAMES = 12; // 帧数
         for (let f = 1; f <= FRAMES; f++) {
           const curLat = start[0] + (end[0] - start[0]) * (f / FRAMES);
           const curLng = start[1] + (end[1] - start[1]) * (f / FRAMES);
           animatedPolyline.addLatLng([curLat, curLng]);
-          await sleep(30); // 画线速度（帧率）
+          await sleep(30); // 每一帧间隔
         }
 
         // 3. 笔锋抵达本段终点：放置终点城市 marker
